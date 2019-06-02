@@ -1,14 +1,12 @@
 package com.example.myapplication
 
+import android.content.Context
 import android.support.v7.app.AppCompatActivity
-import android.os.Bundle
 import android.support.v4.content.LocalBroadcastManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.icu.text.SimpleDateFormat
 import android.icu.util.Calendar
-import android.os.Handler
-import android.os.Message
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -16,20 +14,25 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
-import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.io.ObjectInputStream
+import java.io.*
 import java.util.*
 import java.util.concurrent.ExecutionException
+import android.R.attr.path
+import android.net.Uri
+import android.os.*
+import java.net.URI
 
 
 class MainActivity : AppCompatActivity(), MessageClient.OnMessageReceivedListener {
+
     private val TAG = "MainActivity"
     internal var datapath = "/message_path"
     protected var handler: Handler? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val builder = StrictMode.VmPolicy.Builder()
+        StrictMode.setVmPolicy(builder.build())
     }
 
     private fun currentTimeStr(): String {
@@ -38,13 +41,24 @@ class MainActivity : AppCompatActivity(), MessageClient.OnMessageReceivedListene
         return df.format(c.time)
     }
 
-    public fun logthis(msg:String)
+    fun logthis(msg:String)
     {
-        val emailIntent = Intent(android.content.Intent.ACTION_SEND);
-        emailIntent.setType("text/plain");
-        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL,  arrayOf("d.p.rosenbusch@student.utwente.nl", "j.m.krooneman@student.utwente.nl", "a.jung@student.utwente.nl" ))
-        emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "SensorData @ ${currentTimeStr()}")
-        emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, msg)
+        val filename = SimpleDateFormat("hh_mm_ss").format(Calendar.getInstance().time) + ".txt"
+        val filePath = filesDir.absolutePath+"/"+filename
+        openFileOutput(filename, Context.MODE_PRIVATE).use {
+            it.write(msg.toByteArray())
+        }
+        Toast.makeText(this, "Saved to file: " + File(filePath).exists(), Toast.LENGTH_LONG).show()
+
+        // Sending per email does not work from a certain size on
+
+        /*
+        val emailIntent = Intent(android.content.Intent.ACTION_SEND)
+        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        emailIntent.setType("text/plain")
+        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("d.p.rosenbusch@student.utwente.nl", "j.m.krooneman@student.utwente.nl", "a.jung@student.utwente.nl" ))
+        emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,"SensorData @ ${currentTimeStr()}")
+        emailIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(File(filePath)))
         emailIntent.setType("message/rfc822");
 
         try {
@@ -54,7 +68,10 @@ class MainActivity : AppCompatActivity(), MessageClient.OnMessageReceivedListene
             Toast.makeText(this,
                 "#oops",
                 Toast.LENGTH_SHORT).show()
+            Log.i(TAG, msg)
+            Log.e(TAG, "#oops:", e)
         }
+        */
     }
 
     public override fun onResume() {
